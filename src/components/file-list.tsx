@@ -18,7 +18,6 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "./ui/context-menu";
-import { openPath } from "@tauri-apps/plugin-opener";
 
 export function FileList() {
   let navigate = useNavigate();
