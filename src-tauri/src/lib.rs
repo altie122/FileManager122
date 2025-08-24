@@ -59,23 +59,23 @@ fn open(path: String) -> Result<(), String> {
 
 #[tauri::command]
 fn has_child_folders(path: String) -> Result<bool, String> {
-    let dir = Path::new(&path);
+    let dir = std::path::Path::new(&path);
 
     if !dir.is_dir() {
         return Ok(false);
     }
 
-    let entries = fs::read_dir(dir).map_err(|e| e.to_string())?;
+    let entries = std::fs::read_dir(dir).map_err(|e| e.to_string())?;
 
     for entry in entries {
         if let Ok(entry) = entry {
             if entry.path().is_dir() {
-                return Ok(true); // found at least one folder
+                return Ok(true);
             }
         }
     }
 
-    Ok(false) // no subfolders found
+    Ok(false)
 }
 
 #[tauri::command]

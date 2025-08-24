@@ -12,13 +12,13 @@ export function DrivesList() {
   }, []);
 
   return (
-    <>
+    <div className="flex flex-col gap-2 p-2">
       {drives.map((drive) => (
         <FolderNode
           key={drive}
           entry={{ path: drive, is_dir: true, file_type: null }}
         />
       ))}
-    </>
+    </div>
   );
 }

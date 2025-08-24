@@ -1,6 +1,5 @@
 import { Outlet } from "react-router";
 import { Navbar } from "./components/navbar";
-import { DrivesList } from "./components/folder-list";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -9,6 +8,7 @@ import {
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Store } from "@tauri-apps/plugin-store";
 import { ImperativePanelGroupHandle } from "react-resizable-panels";
+import { Sidebar } from "./components/sidebar";
 
 export function BaseLayout() {
   const [initialLayout, setInitialLayout] = useState<number[] | null>(null);
@@ -73,7 +73,7 @@ export function BaseLayout() {
         onLayout={handleLayoutChange}
       >
         <ResizablePanel defaultSize={initialLayout[0]} minSize={20}>
-          <DrivesList />
+          <Sidebar />
         </ResizablePanel>
         <ResizableHandle />
         <ResizablePanel defaultSize={initialLayout[1]}>
