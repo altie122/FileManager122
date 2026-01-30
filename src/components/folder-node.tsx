@@ -20,9 +20,12 @@ export function FolderNode({ entry }: { entry: FileEntry }) {
   const [hasChildren, setHasChildren] = useState<boolean | null>(null);
   const [locked, setLocked] = useState(false);
 
-  // Check if folder has children on mount
+  // Check if folder has children on mount (debounced to avoid many simultaneous calls)
   useEffect(() => {
-    if (entry.is_dir) {
+    if (!entry.is_dir) return;
+
+    // Use a small timeout to debounce rapid checks
+    const timeoutId = setTimeout(() => {
       invoke<boolean>("has_child_folders", { path: entry.path })
         .then((result) => {
           setHasChildren(result);
@@ -32,7 +35,9 @@ export function FolderNode({ entry }: { entry: FileEntry }) {
           setLocked(true);
           setHasChildren(false);
         });
-    }
+    }, 0); // Use 0ms timeout to defer to next tick, spreading calls
+
+    return () => clearTimeout(timeoutId);
   }, [entry.path, entry.is_dir]);
 
   async function fetchChildren() {
@@ -56,7 +61,7 @@ export function FolderNode({ entry }: { entry: FileEntry }) {
       className="border rounded-lg p-1"
     >
       <div className="flex items-center justify-between gap-2 p-1">
-        <Link className="text-sm" to={`/${entry.path}`}>
+        <Link className="text-sm" to={`/files/${entry.path}`}>
           {name}
         </Link>
 

@@ -1,7 +1,17 @@
-use std::path::Path;
 use directories::UserDirs;
 use serde::Serialize;
-use std::fs;
+use tauri::Emitter;
+use std::{
+    collections::HashMap,
+    fs,
+    path::Path,
+    sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}},
+    thread,
+    time::{Duration, Instant},
+};
+use uuid::Uuid;
+
+struct Jobs(Mutex<HashMap<String, Arc<AtomicBool>>>);
 
 mod icons;
 
@@ -118,12 +128,83 @@ fn list_drives_platform() -> Vec<String> {
     drives
 }
 
+#[tauri::command]
+fn create_file(path: String) -> Result<(), String> {
+    let p = Path::new(&path);
+    if p.exists() {
+        return Err("File already exists".into());
+    }
+    fs::File::create(p).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn create_folder(path: String) -> Result<(), String> {
+    let p = Path::new(&path);
+    if p.exists() {
+        return Err("Folder already exists".into());
+    }
+    fs::create_dir_all(p).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+#[tauri::command]
+fn open_in_code(path: String) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    use std::process::Command;
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+    Command::new("cmd")
+        .args(["/C", "code", &path])
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+fn open_in_code(path: String) -> Result<(), String> {
+    Command::new("code")
+        .arg(&path) // <-- pass as arg, no manual quoting
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+#[tauri::command]
+fn open_in_cursor(path: String) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    use std::process::Command;
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+    Command::new("cmd")
+        .args(["/C", "cursor", &path])
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+fn open_in_cursor(path: String) -> Result<(), String> {
+    Command::new("cursor")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
-        .invoke_handler(tauri::generate_handler![get_desktop_path, list_dir, get_icon, open, has_child_folders, list_drives])
+        .manage(Jobs(Mutex::new(HashMap::new())))
+        .invoke_handler(tauri::generate_handler![get_desktop_path, list_dir, get_icon, open, has_child_folders, list_drives, create_file, create_folder, open_in_code, open_in_cursor])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
